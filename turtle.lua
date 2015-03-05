@@ -273,7 +273,7 @@ end
 function sndmsg(smsg, class)
 print("send message: ", smsg, " to ID ", monitor)
 local tArgs = {id, monitor, smsg, class}
-rednet.send(relay, textutils.serialize(tArgs))
+rednet.send(relay, textutils.serialize(tArgs), "DCMXC")
 end
  
 function getmsg()    -- get message function
@@ -290,7 +290,7 @@ print(fmsg)
         ysrc = tonumber(fmsg[1])
         yid = tonumber(fmsg[2])
         ymsg = fmsg[3]
-        yclass = fmsg[4]
+        
                 if tonumber(yid) == tonumber(me) then
                 print("its for me")
                 forme = true
@@ -302,7 +302,7 @@ print(fmsg)
                 end
         end
 end
-return ysrc, ymsg, yclass
+return ysrc, ymsg
 end
  
 function reportfuel()

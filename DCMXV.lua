@@ -111,29 +111,72 @@ function mainmenu()
 -- system functions
 function registerHost()
 -- generate hostname
-rednet.host("DCMX", "DCMCommand")
+rednet.host("DCMXC", "DCMCommand")
 
 
 end
 
-	-- read the roster and return expected fleet details
+	-- read the dns registry and return expected fleet details
 function sessionRead()
-	if fs.exists("sessiondetail") then
-		local file = fs.open("sessiondetail", "r")
-		local xfleet = textutils.unserialize(file.readAll())
-		file:close()
-		return xfleet
-	else
-		local file = fs.open("sessiondetail", "w")
-		file.write("{}")
-		local xfleet = {}
-	end
+	local fleetID = {rednet.lookup("DCMX")}
+
+	return fleetID
 end
 	-- ping the fleet, see who responds, set them ready to receive
 function initFleet()
-
+		for i=1,#fleetID do
+			sndmsg("init", fleetID[i])
+			
+			
+		end
 end
 
+-- communicate
+    function sndmsg(smsg, id)
+    print("sending message")
+    os.sleep(1)
+    zArgs = {source, id, smsg}
+    xargs = textutils.serialize(zArgs)
+    rednet.send(tonumber(relay), xargs)
+    end 
+
+function getmsg()    -- get message function
+local me = os.getComputerID()
+local forme = false
+while forme == false do
+print("listening")
+local xid, xmsg, prot = rednet.receive("DCMXC", 5)
+print("got message")
+local xsub = string.sub(xmsg,1,1)
+        if xsub == "{" then
+fmsg = textutils.unserialize(xmsg)
+print(fmsg)
+        ysrc = tonumber(fmsg[1])
+        yid = tonumber(fmsg[2])
+        ymsg = fmsg[3]
+        
+                if tonumber(yid) == tonumber(me) then
+                print("its for me")
+                forme = true
+                elseif tonumber(yid) == -1 then
+                print("its for all")
+                forme = true
+                else
+                print("not for me")
+                end
+        end
+end
+return ysrc, ymsg
+end
+	
+	--command functions
+	function turtleinit()
+
+   
+    end	
+	
+	
+	
 	-- MAIN FUNCTION START
 
     openModem() 
