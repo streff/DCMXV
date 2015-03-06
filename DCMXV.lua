@@ -117,16 +117,17 @@ rednet.host("DCMXC", "DCMCommand")
 end
 
 	-- read the dns registry and return expected fleet details
-function sessionRead()
-	local fleetID = {rednet.lookup("DCMX")}
-
-	return fleetID
-end
 	-- ping the fleet, see who responds, set them ready to receive
 function initFleet()
+		local fleetID = {rednet.lookup("DCMX")}
+		roster = {}
+		rosterStats = {}
 		for i=1,#fleetID do
 			sndmsg("init", fleetID[i])
-			
+			source, message, class = getmsg()
+			local xmsg = textutils.unserialize(message)
+			roster[i] = {fleetID[i],xmsg}
+			print(xmsg)
 			
 		end
 end
@@ -135,9 +136,9 @@ end
     function sndmsg(smsg, id)
     print("sending message")
     os.sleep(1)
-    zArgs = {source, id, smsg}
+    zArgs = {src, id, smsg}
     xargs = textutils.serialize(zArgs)
-    rednet.send(tonumber(relay), xargs)
+    rednet.send(tonumber(id), xargs)
     end 
 
 function getmsg()    -- get message function
@@ -145,24 +146,19 @@ local me = os.getComputerID()
 local forme = false
 while forme == false do
 print("listening")
-local xid, xmsg, prot = rednet.receive("DCMXC", 5)
+local xid, xmsg, prot = rednet.receive("DCMXC")
 print("got message")
 local xsub = string.sub(xmsg,1,1)
         if xsub == "{" then
 fmsg = textutils.unserialize(xmsg)
-print(fmsg)
         ysrc = tonumber(fmsg[1])
         yid = tonumber(fmsg[2])
         ymsg = fmsg[3]
+		yclass = fmsg[4]
         
-                if tonumber(yid) == tonumber(me) then
+                if (tonumber(yid) == tonumber(me) and yclass == "I") then
                 print("its for me")
                 forme = true
-                elseif tonumber(yid) == -1 then
-                print("its for all")
-                forme = true
-                else
-                print("not for me")
                 end
         end
 end
@@ -170,10 +166,7 @@ return ysrc, ymsg
 end
 	
 	--command functions
-	function turtleinit()
 
-   
-    end	
 	
 	
 	
@@ -186,6 +179,5 @@ end
 	sleep(2)
     term.clear()
     source = tonumber(os.getComputerID()) -- get terminal number as source
-    sessionRead()
 	initFleet()
 	turtlemenu()

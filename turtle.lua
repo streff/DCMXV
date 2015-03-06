@@ -5,8 +5,8 @@
 function gohome()
 pcall(travelheight)
 file = fs.open("home", "r")
-local xhome = textutils.unserialize(file.readLine())
-file:close()
+local xhome = textutils.unserialize(file.readAll())
+file.close()
 print("going home: ", textutils.serialize(xhome))
 sndmsg("going home", "I")
 goto(xhome[1], xhome[2], xhome[3], xhome[4])
@@ -165,29 +165,25 @@ sndmsg("ready", "A")
 local src, coords, class = getmsg()
 file = fs.open("home", "w")
 file.write(textutils.serialize(coords))
-file:close()
+file.close()
 local xconf = reporthome()
 end
  
 function reportparam()
 sndmsg(id, "MON")
 file = fs.open("home", "r")
-local xhome = textutils.unserialize(file.readLine())
-file:close()
-sndmsg(xhome, "H")
-sndmsg(theight, "T")
-sndmsg(esize, "E")
-sndmsg(repeats, "Rx")
-sndmsg(offset, "off")
+local xhome = textutils.unserialize(file.readAll())
+file.close()
+return xhome, theight, esize, repeats, offset
 end
  
 function gotosite()
 pcall(travelheight)
 sndmsg("Going to site..", "I")
 file = fs.open("site", "r")
-local xsite = textutils.unserialize(file.readLine())
+local xsite = textutils.unserialize(file.readAll())
 xsite[1] = xsite[1] + offset
-file:close()
+file.close()
 goto(xsite[1], xsite[2], xsite[3], xsite[4])
 sndmsg("At Site", "I")
 end
@@ -221,7 +217,7 @@ tellpos()
 gohome()
 unload()
 getfuel()
-sndmsg("Done Shafting.. snigger..", "I")
+sndmsg("Done Shaft", "I")
 end
  
 function punch()
@@ -272,8 +268,8 @@ end
  
 function sndmsg(smsg, class)
 print("send message: ", smsg, " to ID ", monitor)
-local tArgs = {id, monitor, smsg, class}
-rednet.send(relay, textutils.serialize(tArgs), "DCMXC")
+local tArgs = {id, source, smsg, class}
+rednet.send(source, textutils.serialize(tArgs), "DCMXC")
 end
  
 function getmsg()    -- get message function
@@ -344,28 +340,25 @@ end
 function setsite(src,msg,coords)
 file = fs.open("site", "w")
 file.write(textutils.serialize(coords))
-file:close()
+file.close()
+sx = coords[1]
+sy = coords[2]
+sz = coords[3]
+sh = coords[4]
 sndmsg("Site set", "I")
-reportsite()
 end
  
 function lowersite()
 file = fs.open("site", "r")
-local xsite = textutils.unserialize(file.readLine())
-file:close()
+local xsite = textutils.unserialize(file.readAll())
+file.close()
 xsite[3] = 25
 file = fs.open("site", "w")
 file.write(textutils.serialize(xsite))
-file:close()
-local xconf = reportsite()
+file.close()
 end
  
-function reportsite()
-file = fs.open("site", "r")
-local xsite = textutils.unserialize(file.readLine())
-file:close()
-sndmsg(xsite, "S")
-end
+
  
 function treboot()
 sndmsg("rebooting", "I")
@@ -412,29 +405,27 @@ end
 function homehere()
 file = fs.open("home", "w")
 file.write(textutils.serialize(cpos))
-file:close()
+file.close()
 sndmsg("Home Set", "I")
 end
  
 function writesettings()
-local xsettings = {esize, theight, repeats, offset, relay, monitor}
+local xsettings = {esize, theight, repeats, offset, relay}
 file = fs.open("settings", "w")
 file.write(textutils.serialize(xsettings))
-file:close()
+file.close()
 end
  
 function init()
-sndmsg("Initialising...", "I")
-reportparam()
-reportsite()
-reportfuel()
-tellpos()
+sndmsg("Initialising", "I")
+getpos()
 os.sleep(1)
-sndmsg("Init Ok.", "I")
- 
+turtleStatus = {cx, cy, cz, ch, sx, sy, sz, sh, esize, theight, repeats, offset, relay, tfuel,}
+ sndmsg (textutils.serialize(turtleStatus), "I")
+ sndmsg("Init OK", "I")
 end
- 
- 
+
+
  
 -- MAIN FUNCTION START
 -- code execute start
@@ -444,11 +435,11 @@ id = tonumber(os.getComputerID())
 if fs.exists("settings") then
 		local file = fs.open("settings", "r")
 		local xsettings = textutils.unserialize(file.readAll())
-		file:close()
+		file.close()
 	else
 		local file = fs.open("settings", "w")
 		xsettings = {5,150,1,0,}
-		file.write(xsettings)
+		file.write(textutils.serialize(xsettings))
 	end
 
 
@@ -456,7 +447,10 @@ esize = tonumber(xsettings[1])
 theight = tonumber(xsettings[2])
 repeats = tonumber(xsettings[3])
 offset = tonumber(xsettings[4])
-rednet.host("DCMX", "DCMBOT" ..id)
+relay = tonumber(xsettings[5])
+tfuel = turtle.getFuelLevel()
+fqdn = ("DCMBOT" ..id)
+rednet.host("DCMX", fqdn)
 blip = 0                                                                                -- position spam blip
  
 while true do
@@ -474,8 +468,6 @@ source, message, class = getmsg()
         pcall(reportparam)
         elseif message == "setsite" then
         setsite(source,message,class)
-        elseif message == "reportsite" then
-        pcall(reportsite)
         elseif message == "reportfuel" then
         pcall(reportfuel)
         elseif message == "gotosite" then
@@ -503,7 +495,9 @@ source, message, class = getmsg()
         elseif message == "setoffset" then
         setoffset(source,message,class)
         elseif message == "punch" then
-        pcall(punch)
+        pcall(punch) 
+		elseif message == "register" then
+        pcall(register)
         elseif message == "relay" then
         setrelay(source,message,class)
         elseif message == "monitor" then
